@@ -1,0 +1,260 @@
+<!DOCTYPE html>
+<html lang="bn">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>আপনার চাঁদা আপনি দেন – ট্যাক্স ক্যালকুলেটর</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Bengali:wght@400;600;700&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<style>
+  :root {
+    --bg1: #0b1220; --bg2: #1b1040; --bg3: #03332f;
+    --glass: rgba(255,255,255,0.08);
+    --border: rgba(255,255,255,0.18);
+    --text: #eef2ff; --muted: #a5b4cf;
+    --accent: #36f5c2; --accent2: #7c5cff; --warn: #ffb020;
+    color-scheme: dark;
+  }
+  @media (prefers-color-scheme: light) {
+    :root:not([data-theme="dark"]) {
+      --bg1: #e8f0ff; --bg2: #f3e8ff; --bg3: #dcfff4;
+      --glass: rgba(255,255,255,0.55); --border: rgba(255,255,255,0.9);
+      --text: #111827; --muted: #4b5563; --accent: #047857; --accent2: #5b21b6; --warn: #b45309;
+      color-scheme: light;
+    }
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; min-height: 100%; }
+  body {
+    font-family: 'Noto Sans Bengali', system-ui, sans-serif;
+    color: var(--text);
+    background: linear-gradient(120deg, var(--bg1), var(--bg2), var(--bg3));
+    background-attachment: fixed;
+    padding: env(safe-area-inset-top,0px) 16px env(safe-area-inset-bottom,0px);
+    position: relative; overflow-x: hidden;
+  }
+  .orb { position: fixed; border-radius: 50%; filter: blur(80px); opacity: .45; z-index: -1; animation: float 14s ease-in-out infinite; }
+  .o1 { width: 340px; height: 340px; background: var(--accent2); top: -80px; left: -60px; }
+  .o2 { width: 300px; height: 300px; background: var(--accent); bottom: -60px; right: -40px; animation-delay: -6s; }
+  @keyframes float { 50% { transform: translate(30px, -20px); } }
+  .wrap { max-width: 880px; margin: 0 auto; padding: 28px 0 60px; }
+  header { text-align: center; margin-bottom: 22px; }
+  h1 { font-size: clamp(1.4rem, 4vw, 2rem); margin: 0 0 6px; text-shadow: 0 0 18px var(--accent); }
+  .sub { color: var(--muted); margin: 0; font-size: .95rem; }
+  .card {
+    background: var(--glass); border: 1px solid var(--border);
+    backdrop-filter: blur(24px) saturate(160%); -webkit-backdrop-filter: blur(24px) saturate(160%);
+    border-radius: 22px; padding: 22px; margin-bottom: 18px;
+    box-shadow: 0 10px 40px rgba(0,0,0,.25), inset 0 1px 0 rgba(255,255,255,.15);
+  }
+  label { display: block; font-size: .9rem; color: var(--muted); margin: 12px 0 6px; }
+  input, select {
+    width: 100%; padding: 12px 14px; border-radius: 14px; border: 1px solid var(--border);
+    background: rgba(255,255,255,.07); color: var(--text); font: inherit; font-size: 1rem;
+  }
+  input:focus, select:focus { outline: none; box-shadow: 0 0 0 3px var(--accent); }
+  .grid { display: grid; gap: 12px; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); }
+  button {
+    margin-top: 16px; padding: 13px 22px; border: 0; border-radius: 14px; cursor: pointer;
+    font: inherit; font-weight: 700; color: #04121a;
+    background: linear-gradient(90deg, var(--accent), var(--accent2));
+    box-shadow: 0 0 22px rgba(54,245,194,.45);
+  }
+  button.ghost { background: transparent; color: var(--text); border: 1px solid var(--border); box-shadow: none; }
+  .notice { padding: 16px; border-radius: 16px; background: rgba(54,245,194,.12); border: 1px solid var(--accent); margin-top: 14px; }
+  .warn { padding: 14px; border-radius: 16px; background: rgba(255,176,32,.12); border: 1px solid var(--warn); color: var(--text); font-size: .9rem; margin-bottom: 18px; }
+  table { width: 100%; border-collapse: collapse; margin-top: 10px; font-size: .95rem; }
+  th, td { text-align: left; padding: 9px 6px; border-bottom: 1px solid var(--border); }
+  td input { padding: 7px 9px; font-size: .9rem; }
+  .big { font-size: clamp(1.6rem, 5vw, 2.2rem); font-weight: 700; color: var(--accent); }
+  .chart-box { position: relative; height: 300px; margin-top: 12px; }
+  .verify { color: var(--warn); font-size: .8rem; }
+  .watermark {
+    position: fixed; bottom: 10px; right: 14px; font-size: .8rem; letter-spacing: 2px;
+    color: var(--muted); opacity: .5; pointer-events: none; font-family: system-ui, sans-serif;
+  }
+  @media print {
+    body { background: #fff; color: #000; }
+    .orb, .no-print, .watermark { display: none !important; }
+    .card { background: #fff; box-shadow: none; border: 1px solid #999; backdrop-filter: none; }
+  }
+</style>
+</head>
+<body>
+<div class="orb o1"></div><div class="orb o2"></div>
+<div class="wrap">
+  <header>
+    <h1>আপনার চাঁদা আপনি দেন</h1>
+    <p class="sub">ব্যক্তিগত আয়কর ও চাঁদা ক্যালকুলেটর (২ ধাপ)</p>
+  </header>
+
+  <div class="warn">
+    <strong>সতর্কতা:</strong> এই ক্যালকুলেটরের করের স্ল্যাব (নিচের ‘স্ল্যাব সেটিংস’) সম্পূর্ণ যাচাই করা হয়নি। সর্বশেষ অফিসিয়াল তথ্য <a href="https://nbr.gov.bd" target="_blank" rel="noopener" style="color:inherit">nbr.gov.bd</a>-এ দেখে নিন। এটি শুধু আনুমানিক হিসাবের জন্য।
+  </div>
+
+  <!-- STEP 1 -->
+  <section class="card no-print" id="step1">
+    <h2 style="margin-top:0">ধাপ ১: আয়ের তথ্য</h2>
+    <div class="grid">
+      <div>
+        <label for="occupation">পেশা</label>
+        <select id="occupation">
+          <option>কুলি / দিনমজুর</option>
+          <option>রিকশাচালক</option>
+          <option>ব্যবসায়ী / দোকানদার</option>
+          <option>চাকরিজীবী (বেতনভুক্ত)</option>
+          <option>ফ্রিল্যান্সার / আইটি পেশাজীবী</option>
+          <option>অন্যান্য</option>
+        </select>
+      </div>
+      <div>
+        <label for="income">বার্ষিক মোট আয় (টাকা)</label>
+        <input id="income" type="number" min="0" placeholder="যেমন: 400000">
+      </div>
+      <div>
+        <label for="expense">বার্ষিক ব্যয় (টাকা)</label>
+        <input id="expense" type="number" min="0" placeholder="যেমন: 150000">
+      </div>
+      <div>
+        <label for="deduction">বাদযোগ্য বিনিয়োগ / ছাড় (টাকা)</label>
+        <input id="deduction" type="number" min="0" placeholder="যেমন: 0">
+      </div>
+    </div>
+    <button id="calcBtn">হিসাব করুন →</button>
+  </section>
+
+  <!-- STEP 2 -->
+  <section class="card" id="step2" hidden>
+    <h2 style="margin-top:0">ধাপ ২: ফলাফল</h2>
+    <div id="zeroNotice" class="notice" hidden>
+      <strong>শূন্য চাঁদা / শূন্য কর:</strong> আপনার করযোগ্য আয় করমুক্ত সীমার নিচে। এই বছর কর দেওয়ার প্রয়োজন নেই।
+    </div>
+    <p class="sub" style="margin-top:14px">আনুমানিক বার্ষিক কর</p>
+    <div class="big" id="taxOut">৳ ০</div>
+    <p class="sub">করযোগ্য আয়: <span id="taxable">৳ ০</span></p>
+    <div class="chart-box"><canvas id="chart"></canvas></div>
+    <div class="grid no-print" style="margin-top:12px">
+      <button class="ghost" onclick="window.print()">রশিদ প্রিন্ট / PDF</button>
+      <button class="ghost" id="backBtn">আবার হিসাব</button>
+    </div>
+    <div id="receipt" style="margin-top:18px"></div>
+  </section>
+
+  <!-- SLAB SETTINGS -->
+  <section class="card no-print">
+    <h2 style="margin-top:0">স্ল্যাব সেটিংস</h2>
+    <p class="sub">নিচের মানগুলো সম্পাদনা করা যাবে। এগুলো অফিসিয়াল গেজেটের সাথে মিলিয়ে নিন।</p>
+    <table>
+      <thead><tr><th>স্ল্যাব</th><th>পরিমাণ (টাকা)</th><th>হার (%)</th></tr></thead>
+      <tbody id="slabBody"></tbody>
+    </table>
+  </section>
+
+  <section class="card no-print">
+    <h2 style="margin-top:0">অপরাধ ও দুর্নীতি সংক্রান্ত তথ্য</h2>
+    <p class="sub">ঘুষ, চাঁদাবাজি বা দুর্নীতির বিষয়ে অভিযোগের জন্য দুদক (দুর্নীতি দমন কমিশন) ও সংশ্লিষ্ট সরকারি দপ্তরের সাথে যোগাযোগ করুন। আইনি শাস্তির বিষয়ে সর্বশেষ তথ্য অফিসিয়াল ওয়েবসাইটে যাচাই করুন।</p>
+  </section>
+</div>
+<div class="watermark">GM TAREK</div>
+
+<script>
+// ---- EDITABLE SLAB CONFIG ----
+// threshold: tax-free limit (Tk 3,75,000 reported for AY2026-27 onward)
+// width: size of each bracket (Infinity for last). rate: percent.
+// Only the threshold and the 10% bracket are reported consistently by sources.
+// Other rates are placeholders marked verify=true. Confirm before relying on them.
+const SLABS = [
+  { label: "করমুক্ত সীমা",        width: 375000,   rate: 0,  verify: false },
+  { label: "পরবর্তী ৩,০০,০০০",     width: 300000,   rate: 10, verify: false },
+  { label: "পরবর্তী ৪,০০,০০০",     width: 400000,   rate: 15, verify: true  },
+  { label: "পরবর্তী ৫,০০,০০০",     width: 500000,   rate: 20, verify: true  },
+  { label: "পরবর্তী ২০,০০,০০০",    width: 2000000,  rate: 25, verify: true  },
+  { label: "অবশিষ্ট আয়",          width: Infinity, rate: 30, verify: true  },
+];
+
+const fmt = n => "৳ " + Math.round(n).toLocaleString("en-IN");
+let chart;
+
+// Build editable slab table
+const slabBody = document.getElementById("slabBody");
+SLABS.forEach((s, i) => {
+  const tr = document.createElement("tr");
+  tr.innerHTML = `
+    <td>${s.label}${s.verify ? ' <span class="verify">(যাচাই প্রয়োজন)</span>' : ""}</td>
+    <td><input type="number" min="0" value="${isFinite(s.width) ? s.width : ""}" placeholder="সীমাহীন" data-i="${i}" data-k="width" ${isFinite(s.width) ? "" : "disabled"}></td>
+    <td><input type="number" min="0" max="100" step="0.5" value="${s.rate}" data-i="${i}" data-k="rate"></td>`;
+  slabBody.appendChild(tr);
+});
+slabBody.addEventListener("input", e => {
+  const { i, k } = e.target.dataset;
+  if (i === undefined) return;
+  SLABS[+i][k] = parseFloat(e.target.value) || 0;
+});
+
+function computeTax(taxable) {
+  let remaining = Math.max(0, taxable);
+  let tax = 0;
+  const breakdown = [];
+  // First bracket is the tax-free threshold, handled as width at 0%
+  for (const s of SLABS) {
+    if (remaining <= 0) { breakdown.push({ label: s.label, amount: 0, tax: 0 }); continue; }
+    const amt = Math.min(remaining, s.width);
+    const t = amt * (s.rate / 100);
+    tax += t;
+    breakdown.push({ label: s.label, amount: amt, tax: t });
+    remaining -= amt;
+  }
+  return { tax, breakdown };
+}
+
+document.getElementById("calcBtn").addEventListener("click", () => {
+  const income = parseFloat(document.getElementById("income").value) || 0;
+  const expense = parseFloat(document.getElementById("expense").value) || 0;
+  const deduction = parseFloat(document.getElementById("deduction").value) || 0;
+  const occupation = document.getElementById("occupation").value;
+
+  const taxable = Math.max(0, income - deduction);
+  const { tax, breakdown } = computeTax(taxable);
+  const threshold = SLABS[0].width;
+
+  document.getElementById("step2").hidden = false;
+  document.getElementById("zeroNotice").hidden = !(taxable <= threshold);
+  document.getElementById("taxOut").textContent = fmt(tax);
+  document.getElementById("taxable").textContent = fmt(taxable);
+
+  // Chart: income split into expense, tax, and remainder
+  const net = Math.max(0, income - expense - tax);
+  if (chart) chart.destroy();
+  chart = new Chart(document.getElementById("chart"), {
+    type: "doughnut",
+    data: {
+      labels: ["ব্যয়", "কর / চাঁদা", "অবশিষ্ট সঞ্চয়"],
+      datasets: [{ data: [expense, tax, net], backgroundColor: ["#7c5cff", "#ffb020", "#36f5c2"], borderWidth: 0 }]
+    },
+    options: { plugins: { legend: { labels: { color: getComputedStyle(document.body).color } } }, maintainAspectRatio: false }
+  });
+
+  document.getElementById("receipt").innerHTML = `
+    <div class="card" style="margin:0">
+      <h3 style="margin-top:0">চাঁদা / কর হিসাবের সারাংশ</h3>
+      <p class="sub" style="color:inherit">পেশা: ${occupation}</p>
+      <table>
+        <tr><td>মোট আয়</td><td>${fmt(income)}</td></tr>
+        <tr><td>বাদ (ছাড়)</td><td>${fmt(deduction)}</td></tr>
+        <tr><td>করযোগ্য আয়</td><td>${fmt(taxable)}</td></tr>
+        <tr><td>আনুমানিক কর</td><td>${fmt(tax)}</td></tr>
+      </table>
+      ${breakdown.filter(b => b.amount > 0).map(b => `<p class="sub" style="color:inherit;margin:4px 0">${b.label}: ${fmt(b.amount)} → কর ${fmt(b.tax)}</p>`).join("")}
+      <p class="sub" style="margin-top:12px">এটি একটি আনুমানিক হিসাব, সরকারি রশিদ নয়।</p>
+    </div>`;
+  document.getElementById("step2").scrollIntoView({ behavior: "smooth" });
+});
+
+document.getElementById("backBtn").addEventListener("click", () => {
+  document.getElementById("step2").hidden = true;
+  document.getElementById("step1").scrollIntoView({ behavior: "smooth" });
+});
+</script>
+</body>
+</html>
